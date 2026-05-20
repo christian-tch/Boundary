@@ -1,0 +1,47 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.code-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# SSH keys and secrets
+*.pem
+*.key
+*.pub
+id_rsa*
+known_hosts
+.ssh/
+
+# Local development
+.env
+.env.local
+*.log
+
+# Dependencies and build artifacts
+node_modules/
+dist/
+build/

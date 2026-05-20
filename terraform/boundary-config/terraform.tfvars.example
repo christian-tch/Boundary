@@ -1,0 +1,8 @@
+boundary_cluster_url    = "https://xxxxxxxx.boundary.hashicorp.cloud"
+boundary_admin_login    = "admin"
+boundary_admin_password = "REPLACE_ME"
+
+ssh_target_password     = "REPLACE_ME"
+
+mysql_boundary_user     = "boundary"
+mysql_boundary_password = "REPLACE_ME"

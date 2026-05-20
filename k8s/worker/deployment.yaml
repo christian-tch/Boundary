@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boundary-worker
+  namespace: boundary
+  labels:
+    app: boundary-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: boundary-worker
+  template:
+    metadata:
+      labels:
+        app: boundary-worker
+    spec:
+      containers:
+        - name: worker
+          image: boundary-worker-enterprise:0.21.3
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: config
+              mountPath: /boundary
+            - name: worker-data
+              mountPath: /var/lib/boundary
+          ports:
+            - containerPort: 9202
+              name: proxy
+      volumes:
+        - name: config
+          configMap:
+            name: boundary-worker-config
+        - name: worker-data
+          persistentVolumeClaim:
+            claimName: boundary-worker-pvc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: boundary-worker-config
+  namespace: boundary
+data:
+  config.hcl: |
+    disable_mlock = true
+
+    listener "tcp" {
+      address     = "0.0.0.0:9202"
+      purpose     = "proxy"
+    }
+
+    worker {
+      public_addr = "192.168.49.2:30202"
+
+      auth_storage_path = "/var/lib/boundary"
+
+      # Adresse upstream du controller HCP Boundary
+      # Format : <cluster-id>.proxy.boundary.hashicorp.cloud:9202
+      initial_upstreams = ["a6c5f3d8-06c5-4ddf-ad50-a58bf47f604e.proxy.boundary.hashicorp.cloud:9202"]
+
+      tags {
+        type   = ["worker", "k8s", "minikube"]
+        region = ["local"]
+      }
+    }

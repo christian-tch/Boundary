@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-target
+  namespace: boundary
+  labels:
+    app: ssh-target
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh-target
+  template:
+    metadata:
+      labels:
+        app: ssh-target
+    spec:
+      containers:
+        - name: ssh
+          image: linuxserver/openssh-server:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: PASSWORD_ACCESS
+              value: "true"
+            - name: USER_NAME
+              value: "boundary-user"
+            - name: USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ssh-target-secret
+                  key: user-password
+          ports:
+            - containerPort: 2222
+              name: ssh
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssh-target-secret
+  namespace: boundary
+type: Opaque
+stringData:
+  # Remplace par un mot de passe sécurisé
+  user-password: "xxxxxxxxxxx"

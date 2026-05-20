@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: boundary
+  labels:
+    app: mysql
+spec:
+  # ClusterIP uniquement : pas d'exposition directe hors du cluster
+  # L'accès se fait exclusivement via le worker Boundary
+  type: ClusterIP
+  selector:
+    app: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      protocol: TCP

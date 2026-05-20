@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: boundary-worker-pvc
+  namespace: boundary
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Minikube fournit un storageClass "standard" par défaut
+  storageClassName: standard
