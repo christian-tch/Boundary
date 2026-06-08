@@ -17,24 +17,19 @@ spec:
     spec:
       containers:
         - name: ssh
-          image: linuxserver/openssh-server:latest
-          env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
-            - name: PASSWORD_ACCESS
-              value: "true"
-            - name: USER_NAME
-              value: "boundary-user"
-            - name: USER_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ssh-target-secret
-                  key: user-password
+          image: ssh-target:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 2222
               name: ssh
+          volumeMounts:
+            - name: vault-ca-key
+              mountPath: /etc/ssh/trusted-user-ca-keys.pem
+              subPath: trusted-user-ca-keys.pem
+      volumes:
+        - name: vault-ca-key
+          configMap:
+            name: ssh-vault-ca
 ---
 apiVersion: v1
 kind: Secret

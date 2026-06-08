@@ -1,7 +1,7 @@
 variable "boundary_cluster_url" {
   description = "HCP Boundary cluster URL (ex: https://xxxxxxxx.boundary.hashicorp.cloud)"
   type        = string
-  default = "https://a6c5f3d8-06c5-4ddf-ad50-a58bf47f604e.boundary.hashicorp.cloud"
+  default     = "https://a6c5f3d8-06c5-4ddf-ad50-a58bf47f604e.boundary.hashicorp.cloud"
 }
 
 variable "boundary_admin_login" {
@@ -14,6 +14,7 @@ variable "boundary_admin_password" {
   description = "Boundary admin password"
   type        = string
   sensitive   = true
+  default = "xxxxxxxxxxxx"
 }
 
 variable "ssh_target_address" {
@@ -22,31 +23,28 @@ variable "ssh_target_address" {
   default     = "ssh-target.boundary.svc.cluster.local"
 }
 
-variable "ssh_target_password" {
-  description = "Mot de passe de l'user SSH (boundary-user)"
-  type        = string
-  sensitive   = true
-}
-
 variable "mysql_target_address" {
   description = "DNS du service MySQL dans K8s"
   type        = string
   default     = "mysql.boundary.svc.cluster.local"
 }
 
-variable "mysql_boundary_user" {
-  description = "User MySQL pour Boundary"
+variable "vault_addr" {
+  description = "External Vault URL reachable from the host (ex: http://192.168.49.2:30200)"
   type        = string
-  default     = "boundary"
+  default = "http://127.0.0.1:50919"
 }
 
-variable "mysql_boundary_password" {
-  description = "Mot de passe MySQL pour Boundary"
+variable "vault_token" {
+  description = "Vault root/admin token used by Terraform to configure Vault (dev mode default: root)"
   type        = string
   sensitive   = true
+  default     = "xxxxxxxxxxx"
 }
 
-variable "worker_id" {
-  description = "ID du worker self-managed dans Minikube (ex: w_VYdz8lnOed)"
+variable "mysql_root_password" {
+  description = "MySQL root password — must match k8s/mysql/secret.yaml root-password"
   type        = string
+  sensitive   = true
+  default    = "xxxxxxxxxxx"
 }

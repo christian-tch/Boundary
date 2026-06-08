@@ -2,7 +2,9 @@ boundary_cluster_url    = "https://xxxxxxxx.boundary.hashicorp.cloud"
 boundary_admin_login    = "admin"
 boundary_admin_password = "REPLACE_ME"
 
-ssh_target_password     = "REPLACE_ME"
+# Vault — run `minikube ip` to get the IP
+vault_addr          = "http://192.168.49.2:30200"
+vault_token         = "root"
+mysql_root_password = "REPLACE_ME"   # must match k8s/mysql/secret.yaml root-password
 
-mysql_boundary_user     = "boundary"
-mysql_boundary_password = "REPLACE_ME"
+worker_id           = "REPLACE_ME"

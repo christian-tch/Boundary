@@ -1,15 +1,11 @@
-# -------------------------------------------------------
-# Host Catalog — regroupe tous les hosts du projet
-# -------------------------------------------------------
+# ── Host Catalog ──────────────────────────────────────────────────────
 resource "boundary_host_catalog_static" "minikube" {
   name        = "minikube-catalog"
   description = "Hosts dans le cluster Minikube"
   scope_id    = boundary_scope.project.id
 }
 
-# -------------------------------------------------------
-# Cible SSH
-# -------------------------------------------------------
+# ── SSH host ──────────────────────────────────────────────────────────
 resource "boundary_host_static" "ssh" {
   name            = "ssh-target"
   description     = "Pod OpenSSH dans Minikube"
@@ -23,42 +19,7 @@ resource "boundary_host_set_static" "ssh" {
   host_ids        = [boundary_host_static.ssh.id]
 }
 
-# Credentials SSH stockés dans Boundary (credential brokering)
-resource "boundary_credential_store_static" "ssh" {
-  name        = "ssh-credentials"
-  description = "Credentials statiques pour la cible SSH"
-  scope_id    = boundary_scope.project.id
-}
-
-resource "boundary_credential_username_password" "ssh" {
-  name                = "ssh-boundary-user"
-  description         = "User/password pour le pod SSH"
-  credential_store_id = boundary_credential_store_static.ssh.id
-  username            = "boundary-user"
-  password            = var.ssh_target_password
-}
-
-resource "boundary_target" "ssh" {
-  name         = "ssh-minikube"
-  description  = "Accès SSH au pod dans Minikube"
-  type         = "ssh"
-  scope_id     = boundary_scope.project.id
-  default_port = 2222
-
-  host_source_ids = [boundary_host_set_static.ssh.id]
-
-  # Injecte les credentials automatiquement à la connexion
-  injected_application_credential_source_ids = [
-    boundary_credential_username_password.ssh.id
-  ]
-
-  # Force l'utilisation du worker self-managed dans Minikube
-  egress_worker_filter = "\"k8s\" in \"/tags/type\""
-}
-
-# -------------------------------------------------------
-# Cible MySQL
-# -------------------------------------------------------
+# ── MySQL host ────────────────────────────────────────────────────────
 resource "boundary_host_static" "mysql" {
   name            = "mysql-target"
   description     = "Pod MySQL dans Minikube"
@@ -72,21 +33,57 @@ resource "boundary_host_set_static" "mysql" {
   host_ids        = [boundary_host_static.mysql.id]
 }
 
-# Credentials MySQL stockés dans Boundary
-resource "boundary_credential_store_static" "mysql" {
-  name        = "mysql-credentials"
-  description = "Credentials statiques pour MySQL"
+# ── Vault credential store ────────────────────────────────────────────
+# The worker_filter routes all Vault API calls through the in-cluster worker,
+# so the address uses cluster-internal DNS (HCP controller never reaches Vault directly).
+resource "boundary_credential_store_vault" "main" {
+  name        = "vault"
+  description = "Vault dynamic credentials"
   scope_id    = boundary_scope.project.id
+
+  address       = "http://vault.boundary.svc.cluster.local:8200"
+  token         = vault_token.boundary.client_token
+  worker_filter = "\"k8s\" in \"/tags/type\""
 }
 
-resource "boundary_credential_username_password" "mysql" {
-  name                = "mysql-boundary-user"
-  description         = "User/password pour MySQL"
-  credential_store_id = boundary_credential_store_static.mysql.id
-  username            = var.mysql_boundary_user
-  password            = var.mysql_boundary_password
+# ── SSH credential library (Vault-signed certificate) ─────────────────
+resource "boundary_credential_library_vault_ssh_certificate" "ssh" {
+  name                = "ssh-signed-cert"
+  description         = "Vault-signed SSH certificate for boundary-user"
+  credential_store_id = boundary_credential_store_vault.main.id
+  path                = "ssh/sign/boundary-ssh"
+  username            = "boundary-user"
+  ttl                 = "5m"
 }
 
+# ── MySQL credential library (dynamic user) ───────────────────────────
+resource "boundary_credential_library_vault" "mysql" {
+  name                = "mysql-dynamic"
+  description         = "Vault dynamic MySQL credentials"
+  credential_store_id = boundary_credential_store_vault.main.id
+  path                = "database/creds/boundary-mysql"
+  http_method         = "GET"
+  credential_type     = "username_password"
+}
+
+# ── SSH target ────────────────────────────────────────────────────────
+resource "boundary_target" "ssh" {
+  name         = "ssh-minikube"
+  description  = "Accès SSH au pod dans Minikube"
+  type         = "ssh"
+  scope_id     = boundary_scope.project.id
+  default_port = 2222
+
+  host_source_ids = [boundary_host_set_static.ssh.id]
+
+  injected_application_credential_source_ids = [
+    boundary_credential_library_vault_ssh_certificate.ssh.id
+  ]
+
+  egress_worker_filter = "\"k8s\" in \"/tags/type\""
+}
+
+# ── MySQL target ──────────────────────────────────────────────────────
 resource "boundary_target" "mysql" {
   name         = "mysql-minikube"
   description  = "Accès MySQL dans Minikube"
@@ -96,11 +93,9 @@ resource "boundary_target" "mysql" {
 
   host_source_ids = [boundary_host_set_static.mysql.id]
 
-  # Brokers les credentials : Boundary les fournit au client à la connexion
   brokered_credential_source_ids = [
-    boundary_credential_username_password.mysql.id
+    boundary_credential_library_vault.mysql.id
   ]
 
-  # Force l'utilisation du worker self-managed dans Minikube
   egress_worker_filter = "\"k8s\" in \"/tags/type\""
 }

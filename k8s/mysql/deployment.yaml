@@ -18,6 +18,8 @@ spec:
       containers:
         - name: mysql
           image: mysql:8.0
+          # mysql_native_password is required for Vault's Go MySQL driver to authenticate
+          command: ["--default-authentication-plugin=mysql_native_password"]
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -26,33 +28,6 @@ spec:
                   key: root-password
             - name: MYSQL_DATABASE
               value: "demo"
-            - name: MYSQL_USER
-              value: "boundary"
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: boundary-password
           ports:
             - containerPort: 3306
               name: mysql
-          # Script d'init pour accorder les permissions réseau à l'user boundary
-          volumeMounts:
-            - name: init-sql
-              mountPath: /docker-entrypoint-initdb.d
-      volumes:
-        - name: init-sql
-          configMap:
-            name: mysql-init
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mysql-init
-  namespace: boundary
-data:
-  init.sql: |
-    -- Permet à l'user boundary de se connecter depuis n'importe quelle IP dans le cluster
-    -- (le worker Boundary proxifie la connexion)
-    GRANT ALL PRIVILEGES ON demo.* TO 'boundary'@'%';
-    FLUSH PRIVILEGES;

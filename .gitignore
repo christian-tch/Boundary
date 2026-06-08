@@ -45,3 +45,7 @@ known_hosts
 node_modules/
 dist/
 build/
+
+
+CLAUDE.md
+architecture.drawio
